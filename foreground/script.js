@@ -1,47 +1,61 @@
-async function recordAndSubmit() {
-  const place = document.getElementById('place').value;
-  const time = document.getElementById('time').value;
-  const status = document.getElementById('status');
+document.getElementById('noiseForm').addEventListener('submit', async function (e) {
+  e.preventDefault();
+  const form = e.target;
+  const place = form.place.value;
+  const time = form.time.value;
 
-  // Get location
-  navigator.geolocation.getCurrentPosition(async (pos) => {
-    const latitude = pos.coords.latitude;
-    const longitude = pos.coords.longitude;
+  const status = document.getElementById("status");
+  status.innerText = "Recording noise...";
 
-    // Record for 5 seconds
+  // Get geolocation
+  const getLocation = () =>
+    new Promise((resolve, reject) => {
+      navigator.geolocation.getCurrentPosition(
+        pos => resolve({ lat: pos.coords.latitude, lon: pos.coords.longitude }),
+        err => reject("Location access denied")
+      );
+    });
+
+  const getMaxDecibel = async () => {
     const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-    const audioContext = new AudioContext();
-    const mic = audioContext.createMediaStreamSource(stream);
-    const analyser = audioContext.createAnalyser();
-    mic.connect(analyser);
-    analyser.fftSize = 256;
-    const dataArray = new Uint8Array(analyser.frequencyBinCount);
+    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    const analyser = audioCtx.createAnalyser();
+    const source = audioCtx.createMediaStreamSource(stream);
+    analyser.fftSize = 2048;
+    source.connect(analyser);
 
-    let maxDB = 0;
-    const startTime = audioContext.currentTime;
+    let maxDb = -Infinity;
+    const buffer = new Uint8Array(analyser.frequencyBinCount);
 
-    function measure() {
-      analyser.getByteFrequencyData(dataArray);
-      const rms = Math.sqrt(dataArray.reduce((a, b) => a + b * b, 0) / dataArray.length);
-      const db = 20 * Math.log10(rms / 255);
-      if (!isNaN(db) && db > maxDB) maxDB = db;
-      if (audioContext.currentTime - startTime < 5) {
-        requestAnimationFrame(measure);
-      } else {
-        stream.getTracks().forEach(track => track.stop());
+    const record = new Promise(resolve => {
+      const start = Date.now();
+      const loop = () => {
+        analyser.getByteFrequencyData(buffer);
+        const db = 20 * Math.log10(Math.max(...buffer) / 255);
+        if (db > maxDb) maxDb = db;
+        if (Date.now() - start < 5000) requestAnimationFrame(loop);
+        else resolve(maxDb.toFixed(2));
+      };
+      loop();
+    });
 
-        // Submit to backend
-        fetch("https://hate-noise.onrender.com", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ place_type: place, time_of_day: time, max_db: maxDB, latitude, longitude })
-        })
-        .then(res => res.json())
-        .then(res => status.innerText = "Submitted ✅")
-        .catch(() => status.innerText = "Error ❌");
-      }
-    }
+    return record;
+  };
 
-    measure();
-  });
-}
+  try {
+    const location = await getLocation();
+    const decibel = await getMaxDecibel();
+
+    status.innerText = `Noise recorded: ${decibel} dB. Submitting...`;
+
+    await fetch("https://hate-noise.onrender.com/submit", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ place, time, decibel, ...location })
+    });
+
+    status.innerText = "Submitted successfully! ✅";
+  } catch (err) {
+    status.innerText = "Error: " + err;
+  }
+});

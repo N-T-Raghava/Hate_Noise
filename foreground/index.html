@@ -1,34 +1,30 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 
 <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Noise Survey</title>
 </head>
 
 <body>
     <h2>Noise Survey Form</h2>
     <form id="noiseForm">
-        <label>Type of Place:
-            <select id="place">
-                <option>Residential</option>
-                <option>Commercial</option>
-                <option>Industrial</option>
-                <option>Traffic</option>
-            </select>
-        </label><br><br>
+        <label>Type of Place:</label>
+        <select name="place">
+            <option value="street">Street</option>
+            <option value="park">Park</option>
+            <option value="office">Office</option>
+            <option value="home">Home</option>
+        </select><br><br>
 
-        <label>Time of Day:
-            <select id="time">
-                <option>Morning</option>
-                <option>Afternoon</option>
-                <option>Evening</option>
-                <option>Night</option>
-            </select>
-        </label><br><br>
+        <label>Time of Day:</label>
+        <select name="time">
+            <option value="morning">Morning</option>
+            <option value="afternoon">Afternoon</option>
+            <option value="evening">Evening</option>
+            <option value="night">Night</option>
+        </select><br><br>
 
-        <button type="button" onclick="recordAndSubmit()">Record and Submit</button>
+        <button type="submit">Record Noise & Submit</button>
     </form>
 
     <p id="status"></p>
