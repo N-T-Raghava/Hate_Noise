@@ -31,7 +31,7 @@ async function recordAndSubmit() {
         stream.getTracks().forEach(track => track.stop());
 
         // Submit to backend
-        fetch("https://your-backend-url.onrender.com/submit", {
+        fetch("https://hate-noise.onrender.com", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ place_type: place, time_of_day: time, max_db: maxDB, latitude, longitude })
